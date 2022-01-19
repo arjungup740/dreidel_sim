@@ -3,13 +3,13 @@ import pandas as pd
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
 #### simulate one turn for one player
-import pandas as pd
 
 
 def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, player_number):
     ## if a player doesn't have any coins they're knocked out, return exits the function and next person goes
     if player_wealth <= 0:
         dreidel_word = 'player out, no spin'
+        print(dreidel_word)
         return player_wealth, current_pot_size, dreidel_word
     # expend one coin to play
     player_wealth -= ante
@@ -71,14 +71,22 @@ def run_dreidel_game(starting_coins, ante, num_players, n_turns):
     for turn in range(n_turns):
         # print(f'got here, turn number {turn}')
         ### simulate one full round of a game
+        num_zeros = 0 # initialize this to check
         for player_number in range(num_players):
             # print(f'got here, i number {i}')
+            # TODO: can we just make player_var = globals()[f'player_{player_number + 1}_wealth'] ? cleaner
             globals()[f'player_{player_number + 1}_wealth'], current_pot_size, dreidel_word = execute_one_roll(globals()[f'player_{player_number + 1}_wealth'], current_pot_size, possibilities, ante, player_number)
             ## update list in results_dict
             results_dict[f'player_{player_number + 1}_wealth'].append(globals()[f'player_{player_number + 1}_wealth'])
             results_dict['current_pot_size'].append(current_pot_size)
             results_dict['dreidel_word'].append(dreidel_word)
-    ## todo: need to check if all players except 1 are 0, game over
+            ## need to check if all players except 1 have 0 wealth, then game over
+            if results_dict[f'player_{player_number + 1}_wealth'] == 0:
+                num_zeros += 1
+                print(f'num_zeros is {num_zeros}')
+        if num_zeros == num_players - 1:
+            print('all players except 1 at 0, exiting game')
+            return results_dict
     return results_dict
 
 
@@ -99,14 +107,14 @@ roll_results_df, wealth_results_df = get_results_frames(results_dict)
 wealth_results_df
 ##
 
-wealth_results_df[wealth_results_df['player_1_wealth'] == 0]
-wealth_results_df[50:60]
-roll_results_df[50:60]
+# wealth_results_df[wealth_results_df['player_1_wealth'] == 0]
+# wealth_results_df[50:60]
+# roll_results_df[50:60]
 
 ## next steps
-# get this on git
+# terminate play when everyone at 0
 # set up the running of multiple games and results collection
-# step through and
+# step through and document/understand logic
 # figure out how to end play when all but 1 player is at 0 -- or could just decide to cap it at 100 round games
 # set up the plotting of 1) 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
 
