@@ -57,7 +57,6 @@ def run_dreidel_game(starting_coins, ante, num_players, n_turns):
         'hey',  # 1/2 pot
         'shin'  # put one in the pot
     ]
-
     ### give all the players starting number of coins
     results_dict = {}
     results_dict['current_pot_size'] = [current_pot_size]
@@ -105,6 +104,7 @@ n_turns = 100
 results_dict = run_dreidel_game(starting_coins, ante, num_players, n_turns)
 roll_results_df, wealth_results_df = get_results_frames(results_dict)
 wealth_results_df
+wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_4_wealth'] == 0)]
 ##
 
 # wealth_results_df[wealth_results_df['player_1_wealth'] == 0]
@@ -115,7 +115,6 @@ wealth_results_df
 # terminate play when everyone at 0
 # set up the running of multiple games and results collection
 # step through and document/understand logic
-# figure out how to end play when all but 1 player is at 0 -- or could just decide to cap it at 100 round games
 # set up the plotting of 1) 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
 
 ## questions
