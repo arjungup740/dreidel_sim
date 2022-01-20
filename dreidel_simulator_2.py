@@ -1,3 +1,4 @@
+import datetime
 import random
 import pandas as pd
 random.seed(740)
@@ -10,7 +11,7 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
     ## if a player doesn't have any coins they're knocked out, return exits the function and next person goes
     if player_wealth <= 0:
         dreidel_word = 'player out, no spin'
-        print(dreidel_word)
+        # print(dreidel_word)
         return player_wealth, current_pot_size, dreidel_word
     # expend one coin to play
     player_wealth -= ante
@@ -20,19 +21,19 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
     result = random.randint(0,3)
     dreidel_word = possibilities[result]
     if dreidel_word == 'nun':
-        print('nun, pass')
+        pass
     elif dreidel_word == 'gimmel':
         # give player the pot
         player_wealth = player_wealth + current_pot_size
         # 0 out the pot
         current_pot_size = 0
-        print('gimmel, whole pot!')
+        # print('gimmel, whole pot!')
     elif dreidel_word == 'hey':
         # give player half the pot, round down if odd
         player_wealth = player_wealth + current_pot_size // 2
         # make the pot half the size
         current_pot_size = current_pot_size // 2
-        print('hey, half pot!')
+        # print('hey, half pot!')
     elif dreidel_word == 'shin':
         ## check player wealth again, in the case that the ante put them over the edge to 0, so now this shin is them giving $ they don't have
         if player_wealth <= 0:
@@ -42,9 +43,9 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
         player_wealth -= ante
         # put that coin in the pot
         current_pot_size += ante
-        print('shin, give one sucks to suck')
+        # print('shin, give one sucks to suck')
 
-    print(f'player_{player_number + 1} current_wealth = {player_wealth}; pot size = {current_pot_size}\n\n')
+    # print(f'player_{player_number + 1} current_wealth = {player_wealth}; pot size = {current_pot_size}\n\n')
     return player_wealth, current_pot_size, dreidel_word
 
 
@@ -81,15 +82,12 @@ def run_dreidel_game(starting_coins, ante, num_players, n_turns):
             results_dict[f'player_{player_number + 1}_wealth'].append(globals()[f'player_{player_number + 1}_wealth'])
             results_dict['current_pot_size'].append(current_pot_size)
             results_dict['dreidel_word'].append(dreidel_word)
-            print('got here')
             ## need to check if all players except 1 have 0 wealth, then game over
             if results_dict[f'player_{player_number + 1}_wealth'][-1] == 0: # check the most recent value of the list
-                print('got here 2')
                 num_zeros += 1
-                print(f'num_zeros is {num_zeros}')
                 results_dict['num_zeros'].append(num_zeros)
         if num_zeros == num_players - 1:
-            print('all players except 1 at 0, exiting game')
+            # print('all players except 1 at 0, exiting game')
             return results_dict
     return results_dict
 
@@ -102,20 +100,6 @@ def get_results_frames(results_dict):
 
     return roll_results_df, wealth_results_df, num_zeros_df
 
-############################## one game
-starting_coins = 15
-ante = 1
-num_players = 4
-n_turns = 100
-
-results_dict = run_dreidel_game(starting_coins, ante, num_players, n_turns)
-roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
-# wealth_results_df
-wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_1_wealth'] == 0)]
-
-##############################
-
-############################## multiple games
 def execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games):
     global_results = {}
     for i in range(num_games):
@@ -125,15 +109,32 @@ def execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games
 
     return global_results
 
-global_results = execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games = 2)
+############################## one game
+starting_coins = 15
+ante = 1
+num_players = 4
+n_turns = 100
+
+# results_dict = run_dreidel_game(starting_coins, ante, num_players, n_turns)
+# roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
+# wealth_results_df
+# wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_1_wealth'] == 0)]
+
+##############################
+
+############################## multiple games
+start = datetime.datetime.now()
+global_results = execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games = 1000)
+end = datetime.datetime.now()
 
 global_results['game_0_info_dict']['wealth_results_df']
 
-global_results['game_1_info_dict']['wealth_results_df']
+global_results['game_999_info_dict']['wealth_results_df']
+
+
 
 ## TODO AG sanity checks
     # num_zeros shouldn't decrease? Or think about a scenario where it could
-
 
 
 
