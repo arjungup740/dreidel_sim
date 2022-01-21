@@ -5,7 +5,9 @@ random.seed(740)
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
 #### simulate one turn for one player
-
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
 
 def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, player_number):
     ## if a player doesn't have any coins they're knocked out, return exits the function and next person goes
@@ -49,7 +51,7 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
     return player_wealth, current_pot_size, dreidel_word
 
 
-def run_dreidel_game(starting_coins, ante, num_players, n_turns):
+def run_dreidel_game(starting_coins, ante, num_players, n_rounds):
     ### initialize
     starting_pot_size = ante * num_players
     current_pot_size = starting_pot_size  # will be continuously updated
@@ -70,7 +72,7 @@ def run_dreidel_game(starting_coins, ante, num_players, n_turns):
         results_dict[f'player_{i + 1}_wealth'] = [starting_coins]
     # todo -- make a player class with methods, feels like better way to do this
     ### simulate a game
-    for turn in range(n_turns):
+    for turn in range(n_rounds):
         # print(f'got here, turn number {turn}')
         ### simulate one full round of a game
         num_zeros = 0 # initialize this to check
@@ -100,11 +102,14 @@ def get_results_frames(results_dict):
 
     return roll_results_df, wealth_results_df, num_zeros_df
 
-def execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games):
+def execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games):
     global_results = {}
     for i in range(num_games):
-        results_dict = run_dreidel_game(starting_coins, ante, num_players, n_turns)
+        results_dict = run_dreidel_game(starting_coins, ante, num_players, n_rounds)
         roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
+        ## append game number so it's easy to group on later
+        roll_results_df['game_num'] = i; wealth_results_df['game_num'] = i; num_zeros_df['game_num'] = i;
+        ##  put results in a big dictionary
         global_results[f'game_{i}_info_dict'] = {'roll_results_df' : roll_results_df, 'wealth_results_df' : wealth_results_df, 'num_zeros_df' : num_zeros_df, 'orig_results_dict' : results_dict}
 
     return global_results
@@ -113,25 +118,34 @@ def execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games
 starting_coins = 15
 ante = 1
 num_players = 4
-n_turns = 100
+n_rounds = 100
 
-# results_dict = run_dreidel_game(starting_coins, ante, num_players, n_turns)
+# results_dict = run_dreidel_game(starting_coins, ante, num_players, n_rounds)
 # roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
 # wealth_results_df
 # wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_1_wealth'] == 0)]
 
-##############################
 
 ############################## multiple games
 start = datetime.datetime.now()
-global_results = execute_multiple_games(starting_coins, ante, num_players, n_turns, num_games = 1000)
+global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = 10)
 end = datetime.datetime.now()
-
-global_results['game_0_info_dict']['wealth_results_df']
-
-global_results['game_999_info_dict']['wealth_results_df']
+print(end - start)
 
 
+############################## chart wealth
+## pull out wealth results df into a big list to concat
+
+list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
+
+full_wealth_df = pd.concat(list_of_wealth_results).reset_index().rename(columns = {'level_1':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
+
+full_wealth_df.groupby(full_wealth_df.index).mean() ## this is biased up because if only 3 games player 4 gets to the end, those few obs don't have 0s
+## TODO AG
+
+
+
+full_wealth_df.head()
 
 ## TODO AG sanity checks
     # num_zeros shouldn't decrease? Or think about a scenario where it could
@@ -139,15 +153,18 @@ global_results['game_999_info_dict']['wealth_results_df']
 
 
 ## next steps
-# set up the running of multiple games and results collection
+# think through the problem of games ending early
 # step through and document/understand logic
 # set up the plotting of 1) 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
 
 ## questions
+## chart wealth over time
 ## if you play a bunch of games, how much money can you expect to have at the end of the night?
     ## have to decide --
         # do you get to re-up each game from the bank and you can accumulate debt -- is that the same as allowing negative numbers in one big infinite game
         # once you hit 0 are you done for the night
+        # you play til 0, then if you were 0 the previous game we'll say you take a loan of starting wealth from the bank.
+    ## in effect this is saying chart wealth across games
     ## how does this change based on pot size, number of players, ante size
 ## average time to 0?
     ## how does thi changed based on pot size, number of players, ante size
