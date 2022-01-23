@@ -1,6 +1,7 @@
 import datetime
 import random
 import pandas as pd
+import numpy as np
 random.seed(740)
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
@@ -72,7 +73,7 @@ def run_dreidel_game(starting_coins, ante, num_players, n_rounds):
         results_dict[f'player_{i + 1}_wealth'] = [starting_coins]
     # todo -- make a player class with methods, feels like better way to do this
     ### simulate a game
-    for turn in range(n_rounds):
+    for round in range(n_rounds):
         # print(f'got here, turn number {turn}')
         ### simulate one full round of a game
         num_zeros = 0 # initialize this to check
@@ -137,25 +138,55 @@ print(end - start)
 ## pull out wealth results df into a big list to concat
 
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
+list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
 
-full_wealth_df = pd.concat(list_of_wealth_results).reset_index().rename(columns = {'level_1':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
+## examining 0s
+full_zeros_df = pd.concat(list_of_num_zero_results)
+full_zeros_df[full_zeros_df['game_num'] == 9].tail()
 
+### examining wealth
+full_wealth_df = pd.concat(list_of_wealth_results)#.reset_index().rename(columns = {'index':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
 full_wealth_df.groupby(full_wealth_df.index).mean() ## this is biased up because if only 3 games player 4 gets to the end, those few obs don't have 0s
-## TODO AG
+
+
+tmp = full_wealth_df[full_wealth_df['game_num'] == 9]#.tail()
+
+def fill_short_games_to_n_rounds(tmp):
+    """
+    :param tmp: a df of an individual game
+    :return: that df filled in with 0s and the winning player's wealth to n_rounds
+    """
+    if len(tmp) < 101: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
+        to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), n_rounds + 1)], columns=tmp.columns)
+        final = pd.concat([tmp, to_concat]).fillna(method = 'ffill') # carry the values all the way to the end
+    else:
+        final = tmp
+
+    return final
+
+test = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)
+test.reset_index()
 
 
 
 full_wealth_df.head()
+
+## TODO AG next steps
+# pad with 0s
+    # games ending before 100 turns -- the player that wins, their wealth stays static i guess? I guess pad with 0s
+# plot averages, medians, percentiles
+    # 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
+# get the average time to 0
+# average length of game?
+# step through and document/understand logic
+# set up the plotting
 
 ## TODO AG sanity checks
     # num_zeros shouldn't decrease? Or think about a scenario where it could
 
 
 
-## next steps
-# think through the problem of games ending early
-# step through and document/understand logic
-# set up the plotting of 1) 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
+
 
 ## questions
 ## chart wealth over time
