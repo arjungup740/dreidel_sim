@@ -115,6 +115,19 @@ def execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_game
 
     return global_results
 
+def fill_short_games_to_n_rounds(tmp):
+    """
+    :param tmp: a df of an individual game
+    :return: that df filled in with 0s and the winning player's wealth to n_rounds
+    """
+    if len(tmp) < 101: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
+        to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), n_rounds + 1)], columns=tmp.columns)
+        final = pd.concat([tmp, to_concat]).fillna(method = 'ffill') # carry the values all the way to the end
+    else:
+        final = tmp
+
+    return final
+
 ############################## one game
 starting_coins = 15
 ante = 1
@@ -127,7 +140,7 @@ n_rounds = 100
 # wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_1_wealth'] == 0)]
 
 
-############################## multiple games
+############################## play multiple games
 start = datetime.datetime.now()
 global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = 10)
 end = datetime.datetime.now()
@@ -146,26 +159,16 @@ full_zeros_df[full_zeros_df['game_num'] == 9].tail()
 
 ### examining wealth
 full_wealth_df = pd.concat(list_of_wealth_results)#.reset_index().rename(columns = {'index':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
-full_wealth_df.groupby(full_wealth_df.index).mean() ## this is biased up because if only 3 games player 4 gets to the end, those few obs don't have 0s
+## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
+full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
+                               .drop('game_num', axis = 1)\
+                               .reset_index()\
+                               .rename(columns = {'level_1':'round_num'})
+wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
-
-tmp = full_wealth_df[full_wealth_df['game_num'] == 9]#.tail()
-
-def fill_short_games_to_n_rounds(tmp):
-    """
-    :param tmp: a df of an individual game
-    :return: that df filled in with 0s and the winning player's wealth to n_rounds
-    """
-    if len(tmp) < 101: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
-        to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), n_rounds + 1)], columns=tmp.columns)
-        final = pd.concat([tmp, to_concat]).fillna(method = 'ffill') # carry the values all the way to the end
-    else:
-        final = tmp
-
-    return final
-
-test = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)
-test.reset_index()
+## distribution of wealth across turns
+full_wealth_df.groupby('round_num')[wealth_cols].mean()
+full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])
 
 
 
