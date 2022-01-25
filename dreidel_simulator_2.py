@@ -2,6 +2,7 @@ import datetime
 import random
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 random.seed(740)
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
@@ -142,7 +143,7 @@ n_rounds = 100
 
 ############################## play multiple games
 start = datetime.datetime.now()
-global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = 10)
+global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = 100)
 end = datetime.datetime.now()
 print(end - start)
 
@@ -155,10 +156,13 @@ list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_r
 
 ## examining 0s
 full_zeros_df = pd.concat(list_of_num_zero_results)
-full_zeros_df[full_zeros_df['game_num'] == 9].tail()
+full_zeros_df[full_zeros_df['game_num'] == 9]#.tail()
 
 ### examining wealth
 full_wealth_df = pd.concat(list_of_wealth_results)#.reset_index().rename(columns = {'index':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
+full_wealth_df[full_wealth_df['game_num'] == 7]#.tail()
+full_wealth_df.head()
+
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
 full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
                                .drop('game_num', axis = 1)\
@@ -167,18 +171,23 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
 wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
 ## distribution of wealth across turns
-full_wealth_df.groupby('round_num')[wealth_cols].mean()
-full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])
+mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
+quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
+                               .reset_index(level = 1)\
+                               .rename(columns = {'level_1':'quantile'})
+# quantile_frame.index = quantile_frame.index.rename('quantile', level = 1)
+# quantile_frame.query("quantile == 0.50").plot.line(y = wealth_cols)
 
+mean_frame.plot.line(y = wealth_cols)
+quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
+quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
+## distro of final wealth for each player
+full_wealth_df[full_wealth_df['round_num'] == 100].quantile([.6, .7, .8, .9])#.describe()
 
-full_wealth_df.head()
+quantile_frame.head()
 
 ## TODO AG next steps
-# pad with 0s
-    # games ending before 100 turns -- the player that wins, their wealth stays static i guess? I guess pad with 0s
-# plot averages, medians, percentiles
-    # 1 player's wealther over many games, all players' wealth over one game, all players' wealthe over many games
 # get the average time to 0
 # average length of game?
 # step through and document/understand logic
