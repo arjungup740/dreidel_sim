@@ -148,21 +148,43 @@ end = datetime.datetime.now()
 print(end - start)
 
 
-############################## chart wealth
+############################## some processing
 ## pull out wealth results df into a big list to concat
 
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
 list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
 
 ## examining 0s
-full_zeros_df = pd.concat(list_of_num_zero_results)
-full_zeros_df[full_zeros_df['game_num'] == 9]#.tail()
+# full_zeros_df = pd.concat(list_of_num_zero_results)
+# full_zeros_df[full_zeros_df['game_num'] == 9]#.tail()
 
 ### examining wealth
 full_wealth_df = pd.concat(list_of_wealth_results)#.reset_index().rename(columns = {'index':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
-full_wealth_df[full_wealth_df['game_num'] == 7]#.tail()
+tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
+tmp_series = tmp['player_3_wealth']
+tmp_series[tmp_series == 0].index.min()
+
+def get_time_to_zero(player_wealth_series):
+
+    # tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
+    # tmp_series = tmp['player_3_wealth']
+    # tmp_series[tmp_series == 0].index.min()
+
+    ## find where 0s occur and then take the smallest index number -- since indices are recording the turns
+    return player_wealth_series[player_wealth_series == 0].index.min()
+
+full_wealth_df.groupby('game_num')['player_1_wealth'].apply(get_time_to_zero)
+
 full_wealth_df.head()
 
+############################## average time to 0
+
+############################## average game length
+# check the length of each df, which will tell you the number of turns
+game_lengths = full_wealth_df.groupby('game_num').apply(len) # len() = 101, or n_rounds + 1 because the first rounds initializes everyone with 0
+game_lengths.describe()
+
+############################## chart distribution of wealth over time
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
 full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
                                .drop('game_num', axis = 1)\
@@ -170,14 +192,13 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .rename(columns = {'level_1':'round_num'})
 wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
-## distribution of wealth across turns
+## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
 quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
                                .reset_index(level = 1)\
                                .rename(columns = {'level_1':'quantile'})
-# quantile_frame.index = quantile_frame.index.rename('quantile', level = 1)
-# quantile_frame.query("quantile == 0.50").plot.line(y = wealth_cols)
 
+## plot
 mean_frame.plot.line(y = wealth_cols)
 quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
 quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
@@ -188,8 +209,7 @@ full_wealth_df[full_wealth_df['round_num'] == 100].quantile([.6, .7, .8, .9])#.d
 quantile_frame.head()
 
 ## TODO AG next steps
-# get the average time to 0
-# average length of game?
+# get the average time to 0 for each player
 # step through and document/understand logic
 # set up the plotting
 
