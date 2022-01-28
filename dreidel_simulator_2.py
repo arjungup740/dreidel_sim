@@ -164,6 +164,11 @@ tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
 tmp_series = tmp['player_3_wealth']
 tmp_series[tmp_series == 0].index.min()
 
+player_wealth_series = full_wealth_df[['player_1_wealth']
+full_wealth_df[['game_num', 'player_1_wealth']].apply(get_time_to_zero)
+
+full_wealth_df[]
+
 def get_time_to_zero(player_wealth_series):
 
     # tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
@@ -173,9 +178,23 @@ def get_time_to_zero(player_wealth_series):
     ## find where 0s occur and then take the smallest index number -- since indices are recording the turns
     return player_wealth_series[player_wealth_series == 0].index.min()
 
-full_wealth_df.groupby('game_num')['player_1_wealth'].apply(get_time_to_zero)
+full_wealth_df[full_wealth_df['game_num'] == 98][wealth_cols].apply(get_time_to_zero)
 
-full_wealth_df.head()
+full_wealth_df.groupby('game_num')[wealth_cols].sum()
+
+full_wealth_df
+
+full_wealth_df.groupby()
+
+full_wealth_df[full_wealth_df['game']]
+
+grouped_obj = full_wealth_df.groupby('game_num')
+grouped_obj.get_group(list(grouped_obj.groups)[0]) # first value in each group, which is ofc going to be 15
+
+
+full_wealth_df[full_wealth_df['game_num'] == 0]
+
+
 
 ############################## average time to 0
 
@@ -233,3 +252,16 @@ quantile_frame.head()
     ## how does thi changed based on pot size, number of players, ante size
 ## * if the pot starts off relatively small to the players intial allcoations, does everyone more or less stay close to each other
 ## * if the pot starts off large relative to player allocations, does teh first gimmel/hey dictate a likely winner early on
+
+
+# df = pd.DataFrame({'String 1': ['Tom', 'Nick', 'Krish', 'Jack'],
+#                    'String 2': ['Jane', 'John', 'Doe', 'Mohan']})
+#
+#
+# # function for prepending 'Geek'
+# def prepend_geek(name):
+#     return 'Geek ' + name
+#
+#
+# # executing the function
+# df[["String 1", "String 2"]] = df[["String 1", "String 2"]].apply(prepend_geek)
