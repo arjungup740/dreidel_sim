@@ -154,49 +154,14 @@ print(end - start)
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
 list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
 
-## examining 0s
-# full_zeros_df = pd.concat(list_of_num_zero_results)
-# full_zeros_df[full_zeros_df['game_num'] == 9]#.tail()
+full_wealth_df = pd.concat(list_of_wealth_results)
+wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
-### examining wealth
-full_wealth_df = pd.concat(list_of_wealth_results)#.reset_index().rename(columns = {'index':'round_number'}) # nice to have: Can look into perf of just leaving and grouping by index
-tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
-tmp_series = tmp['player_3_wealth']
-tmp_series[tmp_series == 0].index.min()
-
-player_wealth_series = full_wealth_df[['player_1_wealth']
-full_wealth_df[['game_num', 'player_1_wealth']].apply(get_time_to_zero)
-
-full_wealth_df[]
-
-def get_time_to_zero(player_wealth_series):
-
-    # tmp = full_wealth_df[full_wealth_df['game_num'] == 99]
-    # tmp_series = tmp['player_3_wealth']
-    # tmp_series[tmp_series == 0].index.min()
-
-    ## find where 0s occur and then take the smallest index number -- since indices are recording the turns
-    return player_wealth_series[player_wealth_series == 0].index.min()
-
-full_wealth_df[full_wealth_df['game_num'] == 98][wealth_cols].apply(get_time_to_zero)
-
-full_wealth_df.groupby('game_num')[wealth_cols].sum()
-
-full_wealth_df
-
-full_wealth_df.groupby()
-
-full_wealth_df[full_wealth_df['game']]
-
-grouped_obj = full_wealth_df.groupby('game_num')
-grouped_obj.get_group(list(grouped_obj.groups)[0]) # first value in each group, which is ofc going to be 15
-
-
-full_wealth_df[full_wealth_df['game_num'] == 0]
-
-
-
-############################## average time to 0
+############################## time to 0
+# https://stackoverflow.com/questions/41255215/pandas-find-first-occurrence
+times_to_zero = full_wealth_df.groupby('game_num')[wealth_cols].apply(lambda x: x.ne(0).idxmin()).replace(0, np.nan) # returns 0 if the player never gets to 0 in that game, so replace with nan
+times_to_zero.isnull().sum()
+times_to_zero.replace(0, np.nan).describe()
 
 ############################## average game length
 # check the length of each df, which will tell you the number of turns
@@ -209,7 +174,6 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .drop('game_num', axis = 1)\
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
-wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
 ## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
@@ -228,7 +192,8 @@ full_wealth_df[full_wealth_df['round_num'] == 100].quantile([.6, .7, .8, .9])#.d
 quantile_frame.head()
 
 ## TODO AG next steps
-# get the average time to 0 for each player
+# think through th best way to average the 0s, what percentage of the time you get to 0?
+    # so, a) probability you go to 0, if you do how many turns will it happen in
 # step through and document/understand logic
 # set up the plotting
 
