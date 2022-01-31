@@ -143,7 +143,8 @@ n_rounds = 100
 
 ############################## play multiple games
 start = datetime.datetime.now()
-global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = 100)
+num_games = 100
+global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = num_games)
 end = datetime.datetime.now()
 print(end - start)
 
@@ -160,14 +161,15 @@ wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 ############################## time to 0
 # https://stackoverflow.com/questions/41255215/pandas-find-first-occurrence
 times_to_zero = full_wealth_df.groupby('game_num')[wealth_cols].apply(lambda x: x.ne(0).idxmin()).replace(0, np.nan) # returns 0 if the player never gets to 0 in that game, so replace with nan
-times_to_zero.isnull().sum()
-times_to_zero.replace(0, np.nan).describe()
-
+1 - times_to_zero.isnull().sum() / num_games # p(player goes to 0)
+times_to_zero.quantile(np.linspace(.1, 1, 9, 0))#.describe() # if you go tob   0, how often does it happen in
+times_to_zero.mean()
+times_to_zero.hist()
 ############################## average game length
 # check the length of each df, which will tell you the number of turns
 game_lengths = full_wealth_df.groupby('game_num').apply(len) # len() = 101, or n_rounds + 1 because the first rounds initializes everyone with 0
-game_lengths.describe()
-
+game_lengths.quantile(np.linspace(.1, 1, 9, 0))#.describe()
+game_lengths.hist()
 ############################## chart distribution of wealth over time
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
 full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
@@ -182,20 +184,31 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
                                .rename(columns = {'level_1':'quantile'})
 
 ## plot
-mean_frame.plot.line(y = wealth_cols)
+mean_frame.plot.line(y = wealth_cols, title = 'Avg wealth each turn')
 quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
 quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
 ## distro of final wealth for each player
-full_wealth_df[full_wealth_df['round_num'] == 100].quantile([.6, .7, .8, .9])#.describe()
+final_results_df = full_wealth_df[full_wealth_df['round_num'] == 100]
+final_results_df.hist()
+final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
+(final_results_df[wealth_cols] >= starting_coins).sum() / 100 # pct of times you end up with more money than when you started
+final_results_df.replace(0, -starting_coins).sum() # net after the end of the night final_results_df.hist()
+final_results_df[[x.replace('wealth', 'profit') for x in wealth_cols]] = final_results_df[wealth_cols] - starting_coins
+final_results_df.sum()
 
 quantile_frame.head()
 
+num_games * starting_coins
+
 ## TODO AG next steps
-# think through th best way to average the 0s, what percentage of the time you get to 0?
-    # so, a) probability you go to 0, if you do how many turns will it happen in
+# think through accounting of gambling profits philosophically
+# a nice way to plot the distributions/percentiles of player wealth
+# what next avenues for research would be
 # step through and document/understand logic
-# set up the plotting
+    # double check, should our games be going longer?
+# write up in markdown?
+
 
 ## TODO AG sanity checks
     # num_zeros shouldn't decrease? Or think about a scenario where it could
@@ -217,16 +230,3 @@ quantile_frame.head()
     ## how does thi changed based on pot size, number of players, ante size
 ## * if the pot starts off relatively small to the players intial allcoations, does everyone more or less stay close to each other
 ## * if the pot starts off large relative to player allocations, does teh first gimmel/hey dictate a likely winner early on
-
-
-# df = pd.DataFrame({'String 1': ['Tom', 'Nick', 'Krish', 'Jack'],
-#                    'String 2': ['Jane', 'John', 'Doe', 'Mohan']})
-#
-#
-# # function for prepending 'Geek'
-# def prepend_geek(name):
-#     return 'Geek ' + name
-#
-#
-# # executing the function
-# df[["String 1", "String 2"]] = df[["String 1", "String 2"]].apply(prepend_geek)
