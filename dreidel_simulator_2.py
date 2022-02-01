@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 random.seed(740)
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
+# https://www.google.com/search?q=dreidel+simulation+results&sxsrf=APq-WBvJfBcfLXL6Tt85zCI8968E7oSzbQ%3A1643632703689&ei=P9j3YZ61KZ-lptQPsqO6gAU&ved=0ahUKEwje0Mb7gNz1AhWfkokEHbKRDlAQ4dUDCA4&uact=5&oq=dreidel+simulation+results&gs_lcp=Cgdnd3Mtd2l6EAM6BwgAEEcQsAM6CAguEIAEELEDOgUIABCABDoECAAQQzoFCAAQkQI6BAgjECc6CAgAEIAEELEDOgcILhCxAxBDOgoIABCABBCHAhAUOgcIABCABBAKOgQIABAKOgUIIRCgAToFCAAQzQI6BQghEKsCSgUIPBIBNUoECEEYAEoECEYYAFDZAliaN2CROGgFcAJ4AIABXYgBqA2SAQIyM5gBAKABAcgBCMABAQ&sclient=gws-wiz
+# http://educ.jmu.edu/~lucassk/Seminars/Moves%20Overheads%202015.pdf
 #### simulate one turn for one player
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -36,7 +38,7 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
         # give player half the pot, round down if odd
         player_wealth = player_wealth + current_pot_size // 2
         # make the pot half the size
-        current_pot_size = current_pot_size // 2
+        current_pot_size = current_pot_size // 2 # TODO AG: double check logic here
         # print('hey, half pot!')
     elif dreidel_word == 'shin':
         ## check player wealth again, in the case that the ante put them over the edge to 0, so now this shin is them giving $ they don't have
@@ -134,6 +136,7 @@ starting_coins = 15
 ante = 1
 num_players = 4
 n_rounds = 100
+seed_wealth_of_players = num_games * starting_coins
 
 # results_dict = run_dreidel_game(starting_coins, ante, num_players, n_rounds)
 # roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
@@ -143,7 +146,7 @@ n_rounds = 100
 
 ############################## play multiple games
 start = datetime.datetime.now()
-num_games = 100
+num_games = 1000
 global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = num_games)
 end = datetime.datetime.now()
 print(end - start)
@@ -185,27 +188,27 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
 
 ## plot
 mean_frame.plot.line(y = wealth_cols, title = 'Avg wealth each turn')
+quantile_frame.plot.line(y = 'player_1_wealth')
 quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
 quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
 ## distro of final wealth for each player
-final_results_df = full_wealth_df[full_wealth_df['round_num'] == 100]
+final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
 final_results_df.hist()
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
-(final_results_df[wealth_cols] >= starting_coins).sum() / 100 # pct of times you end up with more money than when you started
-final_results_df.replace(0, -starting_coins).sum() # net after the end of the night final_results_df.hist()
-final_results_df[[x.replace('wealth', 'profit') for x in wealth_cols]] = final_results_df[wealth_cols] - starting_coins
-final_results_df.sum()
+(final_results_df[wealth_cols] >= starting_coins).sum() / num_games # pct of times you end up with more money than when you started
+final_results_df.sum() / seed_wealth_of_players - 1 # return
 
 quantile_frame.head()
 
-num_games * starting_coins
+
 
 ## TODO AG next steps
-# think through accounting of gambling profits philosophically
-# a nice way to plot the distributions/percentiles of player wealth
+# a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
-# step through and document/understand logic
+# Try to figure out why our game lengths are much shorter than theirs
+# step through a few rounds for a few games and see that things are going correctly
+# document/understand logic
     # double check, should our games be going longer?
 # write up in markdown?
 
