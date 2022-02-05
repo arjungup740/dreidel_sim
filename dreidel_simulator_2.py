@@ -2,7 +2,7 @@ import datetime
 import random
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 random.seed(740)
 # http://www.slate.com/articles/life/holidays/2014/12/rules_of_dreidel_the_hannukah_game_is_way_too_slow_let_s_speed_it_up.html#lf_comment=249019397
 # https://www.google.com/search?q=simulate+dreidel+outcomes&oq=simulate+dreidel+outcomes&aqs=chrome..69i57.5594j1j4&sourceid=chrome&ie=UTF-8
@@ -35,10 +35,15 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
         current_pot_size = 0
         # print('gimmel, whole pot!')
     elif dreidel_word == 'hey':
-        # give player half the pot, round down if odd
-        player_wealth = player_wealth + current_pot_size // 2
-        # make the pot half the size
-        current_pot_size = current_pot_size // 2 # TODO AG: double check logic here
+        # give player half the pot, round up if odd
+        if current_pot_size % 2 == 0:# check if even
+            player_wealth = player_wealth + current_pot_size // 2
+            # make the pot half the size
+            current_pot_size = current_pot_size // 2
+        elif current_pot_size % 2 == 1: # check if odd. Don't need this line, but for completeness
+            player_wealth = player_wealth + current_pot_size // 2 + 1
+            # make the pot half the size
+            current_pot_size = current_pot_size // 2
         # print('hey, half pot!')
     elif dreidel_word == 'shin':
         ## check player wealth again, in the case that the ante put them over the edge to 0, so now this shin is them giving $ they don't have
@@ -136,6 +141,7 @@ starting_coins = 15
 ante = 1
 num_players = 4
 n_rounds = 100
+num_games = 1000
 seed_wealth_of_players = num_games * starting_coins
 
 # results_dict = run_dreidel_game(starting_coins, ante, num_players, n_rounds)
@@ -146,7 +152,6 @@ seed_wealth_of_players = num_games * starting_coins
 
 ############################## play multiple games
 start = datetime.datetime.now()
-num_games = 1000
 global_results = execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_games = num_games)
 end = datetime.datetime.now()
 print(end - start)
@@ -206,10 +211,12 @@ quantile_frame.head()
 ## TODO AG next steps
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
-# Try to figure out why our game lengths are much shorter than theirs
+# qualms
+    # our games are much shorter than theirs
 # step through a few rounds for a few games and see that things are going correctly
+    # double check that we're handling the hei logic correctly
+    # if everyone starts the night with seed_wealth number of coins, at the end of the night they're all down 50ish%, where did all the money go
 # document/understand logic
-    # double check, should our games be going longer?
 # write up in markdown?
 
 
