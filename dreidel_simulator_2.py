@@ -161,9 +161,15 @@ print(end - start)
 ## pull out wealth results df into a big list to concat
 # TODO AG: set this up to pull out the roll results, pot size at scale too probably?
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
-list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
+# list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
+list_of_roll_results = [ global_results[x]['roll_results_df'] for x in global_results.keys()]
+
+i = 277
+global_results[f'game_{i}_info_dict']['roll_results_df'].head()
 
 full_wealth_df = pd.concat(list_of_wealth_results)
+full_roll_results_df = pd.concat(list_of_roll_results) # getting a random
+full_roll_results_df['round_num'] = full_roll_results_df.index / 4
 wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
 ############################## time to 0
@@ -199,31 +205,35 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
 
 ## distro of final wealth for each player
 final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
+final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
 # final_results_df.hist()
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
 (final_results_df[wealth_cols] >= starting_coins).sum() / num_games # pct of times you end up with more money than when you started
 final_results_df.sum() / seed_wealth_of_players - 1 # return
-assert seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum(), "total starting wealth != total ending wealth"
-# quantile_frame.head()
+assert seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
+assert final_roll_results_df['game_num'].nunique() == num_games #
+
+seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum() + amount left in pot after each game
 
 ## step through a game and see things are going right
-i = 1 # i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
+i = 277 # i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
 wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
 wealth_results_df.iloc[-1].drop('game_num').sum()
 roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
-original_results_dict = global_results[f'game_{i}_info_dict']['orig_results_dict']
-['roll_results_df', 'wealth_results_df', 'num_zeros_df', 'orig_results_dict']
-
-wealth_results_df.drop('game_num', axis = 1).sum(axis = 1).tail()
 roll_results_df['round_number'] = roll_results_df.index / num_players # every 4th pot size should be the value of the pot after a full round
-roll_results_df.tail()
+roll_results_df = roll_results_df.set_index('round_number')
+
+merged = wealth_results_df.merge(roll_results_df.drop('game_num', axis = 1), left_index = True, right_index = True) # modify dropping the game if you do this systematically across the board
+merged['wealth_in_system'] = merged.drop(['game_num', 'dreidel_word'], axis = 1).sum(axis = 1)
+merged[merged['wealth_in_system'] != starting_coins * num_players + 4]
 
 ## TODO AG next steps
 # step through a few rounds for a few games and see that things are going correctly
-    # there were 60k coins to start, so at the end the sum of player wealth shouldn't be >60k
-        # this might have something to do with seeding the pot with 4 coins at the beginning but still starting each player off with 15.
-        # basically we're seeding the pot with 4 coins as if every player had 16, and then when the game is over there could still be coins left in the pot, which right now we're allowing the house to take
-        # there is still something fishy going on at the end because player_wealth.sum() + current pot size != 64
+    # there were 60k coins to start + 4 * num games, so at the end the sum(player wealth) + amount left in pot
+        # pull out the roll results df, see that the sum of the pot values at the end of the game works out -- it doesn't but very close, 200 coins off
+            # losing 57 games somehow
+        # and for each game make sure it's always 64 coins
+# for at the end of the night/in the long run could look at 10 10 game chunks, or something, to see over time if you habitually went to the dreidel thing what would happen
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
 # document/understand logic
