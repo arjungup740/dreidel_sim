@@ -40,7 +40,7 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
             player_wealth = player_wealth + current_pot_size // 2
             # make the pot half the size
             current_pot_size = current_pot_size // 2
-        elif current_pot_size % 2 == 1: # check if odd. Don't need this line, but for completeness
+        elif current_pot_size % 2 == 1: # check if odd. could just make this an else, but for clarity
             player_wealth = player_wealth + current_pot_size // 2 + 1
             # make the pot half the size
             current_pot_size = current_pot_size // 2
@@ -159,7 +159,7 @@ print(end - start)
 
 ############################## some processing
 ## pull out wealth results df into a big list to concat
-
+# TODO AG: set this up to pull out the roll results, pot size at scale too probably?
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
 list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
 
@@ -172,12 +172,12 @@ times_to_zero = full_wealth_df.groupby('game_num')[wealth_cols].apply(lambda x: 
 1 - times_to_zero.isnull().sum() / num_games # p(player goes to 0)
 times_to_zero.quantile(np.linspace(.1, 1, 9, 0))#.describe() # if you go tob   0, how often does it happen in
 times_to_zero.mean()
-times_to_zero.hist()
+# times_to_zero.hist()
 ############################## average game length
 # check the length of each df, which will tell you the number of turns
 game_lengths = full_wealth_df.groupby('game_num').apply(len) # len() = 101, or n_rounds + 1 because the first rounds initializes everyone with 0
 game_lengths.quantile(np.linspace(.1, 1, 9, 0))#.describe()
-game_lengths.hist()
+# game_lengths.hist()
 ############################## chart distribution of wealth over time
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
 full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
@@ -192,30 +192,40 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
                                .rename(columns = {'level_1':'quantile'})
 
 ## plot
-mean_frame.plot.line(y = wealth_cols, title = 'Avg wealth each turn')
-quantile_frame.plot.line(y = 'player_1_wealth')
-quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
-quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
+# mean_frame.plot.line(y = wealth_cols, title = 'Avg wealth each turn')
+# quantile_frame.plot.line(y = 'player_1_wealth')
+# quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
+# quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
 ## distro of final wealth for each player
 final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
-final_results_df.hist()
+# final_results_df.hist()
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
 (final_results_df[wealth_cols] >= starting_coins).sum() / num_games # pct of times you end up with more money than when you started
 final_results_df.sum() / seed_wealth_of_players - 1 # return
+assert seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum(), "total starting wealth != total ending wealth"
+# quantile_frame.head()
 
-quantile_frame.head()
+## step through a game and see things are going right
+i = 1 # i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
+wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
+wealth_results_df.iloc[-1].drop('game_num').sum()
+roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
+original_results_dict = global_results[f'game_{i}_info_dict']['orig_results_dict']
+['roll_results_df', 'wealth_results_df', 'num_zeros_df', 'orig_results_dict']
 
-
+wealth_results_df.drop('game_num', axis = 1).sum(axis = 1).tail()
+roll_results_df['round_number'] = roll_results_df.index / num_players # every 4th pot size should be the value of the pot after a full round
+roll_results_df.tail()
 
 ## TODO AG next steps
+# step through a few rounds for a few games and see that things are going correctly
+    # there were 60k coins to start, so at the end the sum of player wealth shouldn't be >60k
+        # this might have something to do with seeding the pot with 4 coins at the beginning but still starting each player off with 15.
+        # basically we're seeding the pot with 4 coins as if every player had 16, and then when the game is over there could still be coins left in the pot, which right now we're allowing the house to take
+        # there is still something fishy going on at the end because player_wealth.sum() + current pot size != 64
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
-# qualms
-    # our games are much shorter than theirs
-# step through a few rounds for a few games and see that things are going correctly
-    # double check that we're handling the hei logic correctly
-    # if everyone starts the night with seed_wealth number of coins, at the end of the night they're all down 50ish%, where did all the money go
 # document/understand logic
 # write up in markdown?
 
