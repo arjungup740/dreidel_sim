@@ -192,6 +192,8 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .rename(columns = {'level_1':'round_num'})
 
 ## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things
+full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds) # this isn't working properly
+full_roll_results_df[full_roll_results_df['game_num'] == 33]
 
 ## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
