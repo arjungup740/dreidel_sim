@@ -191,6 +191,8 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
 
+## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things
+
 ## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
 quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
@@ -210,13 +212,19 @@ final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] =
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
 (final_results_df[wealth_cols] >= starting_coins).sum() / num_games # pct of times you end up with more money than when you started
 final_results_df.sum() / seed_wealth_of_players - 1 # return
-assert seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
+## check that wealth put into system, which is players's starting coins + their seed coins each game == their final money + what's left in the pot after each game
+assert (seed_wealth_of_players * num_players) + num_players * num_games == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
 assert final_roll_results_df['game_num'].nunique() == num_games #
 
-seed_wealth_of_players * num_players == final_results_df.sum().drop(['game_num', 'round_num']).sum() + amount left in pot after each game
+## look into which games are missing from roll results
+sorted(set([x for x in range(num_games)]) - set(final_roll_results_df['game_num'].unique())) # missing games, it looks like they're all games someone won and no one had any coins
+final_results_df[final_results_df['game_num'] == 33]
+final_roll_results_df[final_roll_results_df['game_num'] == 33]
+# the round numbers aren't filling in all the way, so when we specify round_num == n_rounds, it's not registering
+# global_results['game_33_in']
 
 ## step through a game and see things are going right
-i = 277 # i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
+i = 33# i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
 wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
 wealth_results_df.iloc[-1].drop('game_num').sum()
 roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
@@ -231,7 +239,7 @@ merged[merged['wealth_in_system'] != starting_coins * num_players + 4]
 # step through a few rounds for a few games and see that things are going correctly
     # there were 60k coins to start + 4 * num games, so at the end the sum(player wealth) + amount left in pot
         # pull out the roll results df, see that the sum of the pot values at the end of the game works out -- it doesn't but very close, 200 coins off
-            # losing 57 games somehow
+            # losing 57 games where we finish before 100 turns, and so selecting for turn number 100 doesn't work and we lose those coins
         # and for each game make sure it's always 64 coins
 # for at the end of the night/in the long run could look at 10 10 game chunks, or something, to see over time if you habitually went to the dreidel thing what would happen
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
