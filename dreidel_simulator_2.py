@@ -197,8 +197,11 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
 
-## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things
-full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds) # this isn't working properly
+## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things -- just check that the pot values work out and let's maybe get on with it
+max_roll_table = full_roll_results_df.groupby('game_num')['round_num'].max()
+full_roll_results_df.merge(max_roll_table, )
+full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll') # this isn't working properly
+# full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, args = (n_rounds, num_players, 'roll'))
 full_roll_results_df[full_roll_results_df['game_num'] == 33]
 
 # could just pull the last index on a per game basis and select those out to make sure you get the last rol results
