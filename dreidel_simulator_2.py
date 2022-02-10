@@ -123,12 +123,18 @@ def execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_game
 
     return global_results
 
-def fill_short_games_to_n_rounds(tmp):
+def fill_short_games_to_n_rounds(tmp, n_rounds, n_players, wealth_results_or_roll_results = 'wealth'):
     """
     :param tmp: a df of an individual game
+    :param n_rounds: the number of rounds in a game -- we will use this to determine how many rows the df should have
+    :param wealth_results_or_roll_results: 'wealth' or 'roll'. whether we are looking at the wealth df or the roll df: if we are looking at wealth, len should be n_rounds + 1 rows, if roll results, (n_rounds * n_players) + 1
     :return: that df filled in with 0s and the winning player's wealth to n_rounds
     """
-    if len(tmp) < 101: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
+    if wealth_results_or_roll_results == 'wealth':
+        expected_len_of_tmp = n_rounds + 1
+    elif wealth_results_or_roll_results == 'roll':
+        expected_len_of_tmp = (n_rounds * num_players) + 1
+    if len(tmp) < expected_len_of_tmp: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
         to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), n_rounds + 1)], columns=tmp.columns)
         final = pd.concat([tmp, to_concat]).fillna(method = 'ffill') # carry the values all the way to the end
     else:
@@ -194,6 +200,8 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
 ## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things
 full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds) # this isn't working properly
 full_roll_results_df[full_roll_results_df['game_num'] == 33]
+
+# could just pull the last index on a per game basis and select those out to make sure you get the last rol results
 
 ## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
