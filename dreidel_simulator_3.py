@@ -199,8 +199,9 @@ full_roll_results_df['round_num'] = full_roll_results_df.index / 4
 final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
 final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
-(final_results_df[wealth_cols] >= starting_coins + 1).sum() / num_games # pct of times you end up with more money than when you started
-final_results_df.sum() / seed_wealth_of_players - 1 # return
+(final_results_df[wealth_cols] > starting_coins + 1).sum() / num_games # pct of games you end up with more money than when you started -- note everyone sub 50% when house takes what's left in the pot
+(final_results_df[wealth_cols] == 0).sum() / num_games # double checking the 0 calc
+final_results_df.sum() / seed_wealth_of_players - 1 # long run return, if you played num_games over months let's say
 ## check that wealth put into system, which is players's starting coins + their seed coins each game == their final money + what's left in the pot after each game
 assert (seed_wealth_of_players * num_players) == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
 assert final_roll_results_df['game_num'].nunique() == num_games #
@@ -219,9 +220,10 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
 # quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
 ############################## TODO AG next steps
-# version where house takes what's left in the pot at the end -- just have to verify thing are going correctly, and we could write that up
+# verify what's going at the end of the game is correct as well
 
-# step through a few rounds for a few games and see that things are going correctly, and at the end they're handled correctly
+# and then version where you get pot remainder allocated at the end of the night
+
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
 # document/understand logic
