@@ -147,14 +147,8 @@ starting_coins = 15
 ante = 1
 num_players = 4
 n_rounds = 100
-num_games = 100
-seed_wealth_of_players = num_games * starting_coins
-
-# results_dict = run_dreidel_game(starting_coins, ante, num_players, n_rounds)
-# roll_results_df, wealth_results_df, num_zeros_df = get_results_frames(results_dict)
-# wealth_results_df
-# wealth_results_df[(wealth_results_df['player_2_wealth'] == 0) & (wealth_results_df['player_3_wealth'] == 0) & (wealth_results_df['player_1_wealth'] == 0)]
-
+num_games = 1000
+seed_wealth_of_players = num_games * (starting_coins + 1) # players each seed the pot with 1 coin to start each game
 
 ############################## play multiple games
 start = datetime.datetime.now()
@@ -169,10 +163,6 @@ print(end - start)
 list_of_wealth_results = [ global_results[x]['wealth_results_df'] for x in global_results.keys()] ## nice to have: This feels kinda jank/wrong/unperformant
 # list_of_num_zero_results = [ global_results[x]['num_zeros_df'] for x in global_results.keys()]
 list_of_roll_results = [ global_results[x]['roll_results_df'] for x in global_results.keys()]
-
-i = 277
-global_results[f'game_{i}_info_dict']['roll_results_df'].head()
-
 full_wealth_df = pd.concat(list_of_wealth_results)
 full_roll_results_df = pd.concat(list_of_roll_results) # getting a random
 wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
@@ -181,95 +171,77 @@ wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 # https://stackoverflow.com/questions/41255215/pandas-find-first-occurrence
 times_to_zero = full_wealth_df.groupby('game_num')[wealth_cols].apply(lambda x: x.ne(0).idxmin()).replace(0, np.nan) # returns 0 if the player never gets to 0 in that game, so replace with nan
 1 - times_to_zero.isnull().sum() / num_games # p(player goes to 0)
-times_to_zero.quantile(np.linspace(.1, 1, 9, 0))#.describe() # if you go tob   0, how often does it happen in
+times_to_zero.quantile(np.linspace(.1, 1, 9, 0))#.describe() # if you go to 0, how often does it happen in
 times_to_zero.mean()
-# times_to_zero.hist()
+
 ############################## average game length
 # check the length of each df, which will tell you the number of turns
 game_lengths = full_wealth_df.groupby('game_num').apply(len) # len() = 101, or n_rounds + 1 because the first rounds initializes everyone with 0
 game_lengths.quantile(np.linspace(.1, 1, 9, 0))#.describe()
 len(game_lengths[game_lengths != n_rounds + 1])
-# game_lengths.hist()
-############################## chart distribution of wealth over time
+
+############################## Some further processing
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
 full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players)\
                                .drop('game_num', axis = 1)\
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
 
-full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll')
+full_roll_results_df = full_roll_results_df.groupby('game_num')\
+                                           .apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll')\
+                                           .droplevel(0)
 full_roll_results_df['round_num'] = full_roll_results_df.index / 4
 # full_roll_results_df[full_roll_results_df['game_num'] == 33]
 
-## get the actual distros
+############################## Examine player wealth
+
+## distro of final wealth for each player
+final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
+final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
+final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
+(final_results_df[wealth_cols] >= starting_coins + 1).sum() / num_games # pct of times you end up with more money than when you started
+final_results_df.sum() / seed_wealth_of_players - 1 # return
+## check that wealth put into system, which is players's starting coins + their seed coins each game == their final money + what's left in the pot after each game
+assert (seed_wealth_of_players * num_players) == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
+assert final_roll_results_df['game_num'].nunique() == num_games #
+
+## distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
 quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
                                .reset_index(level = 1)\
                                .rename(columns = {'level_1':'quantile'})
 
-## plot
+
+############################## plotting
 # mean_frame.plot.line(y = wealth_cols, title = 'Avg wealth each turn')
 # quantile_frame.plot.line(y = 'player_1_wealth')
 # quantile_frame[quantile_frame['quantile'] == 0.5].plot.line(y = wealth_cols)
 # quantile_frame[quantile_frame['quantile'] == 0.75].plot.line(y = wealth_cols)
 
-## distro of final wealth for each player
-final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
-final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
-# final_results_df.hist()
-final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
-(final_results_df[wealth_cols] >= starting_coins).sum() / num_games # pct of times you end up with more money than when you started
-final_results_df.sum() / seed_wealth_of_players - 1 # return
-## check that wealth put into system, which is players's starting coins + their seed coins each game == their final money + what's left in the pot after each game
-assert (seed_wealth_of_players * num_players) + num_players * num_games == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
-assert final_roll_results_df['game_num'].nunique() == num_games #
+############################## TODO AG next steps
+# version where house takes what's left in the pot at the end -- just have to verify thing are going correctly, and we could write that up
 
-## look into which games are missing from roll results
-sorted(set([x for x in range(num_games)]) - set(final_roll_results_df['game_num'].unique())) # missing games, it looks like they're all games someone won and no one had any coins
-final_results_df[final_results_df['game_num'] == 33]
-final_roll_results_df[final_roll_results_df['game_num'] == 33]
-# the round numbers aren't filling in all the way, so when we specify round_num == n_rounds, it's not registering
-# global_results['game_33_in']
-
-## step through a game and see things are going right
-i = 33# i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
-wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
-wealth_results_df.iloc[-1].drop('game_num').sum()
-roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
-roll_results_df['round_number'] = roll_results_df.index / num_players # every 4th pot size should be the value of the pot after a full round
-roll_results_df = roll_results_df.set_index('round_number')
-
-merged = wealth_results_df.merge(roll_results_df.drop('game_num', axis = 1), left_index = True, right_index = True) # modify dropping the game if you do this systematically across the board
-merged['wealth_in_system'] = merged.drop(['game_num', 'dreidel_word'], axis = 1).sum(axis = 1)
-merged[merged['wealth_in_system'] != starting_coins * num_players + 4]
-
-## TODO AG next steps
-# we know that there are
-# step through a few rounds for a few games and see that things are going correctly
-
-
+# step through a few rounds for a few games and see that things are going correctly, and at the end they're handled correctly
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
 # document/understand logic
 # write up in markdown?
-
-
 ## TODO AG sanity checks
 
 
 
+############################## QA
 
-
-## questions
-## chart wealth over time
-## if you play a bunch of games, how much money can you expect to have at the end of the night?
-    ## have to decide --
-        # do you get to re-up each game from the bank and you can accumulate debt -- is that the same as allowing negative numbers in one big infinite game
-        # once you hit 0 are you done for the night
-        # you play til 0, then if you were 0 the previous game we'll say you take a loan of starting wealth from the bank.
-    ## in effect this is saying chart wealth across games
-    ## how does this change based on pot size, number of players, ante size
-## average time to 0?
-    ## how does thi changed based on pot size, number of players, ante size
-## * if the pot starts off relatively small to the players intial allcoations, does everyone more or less stay close to each other
-## * if the pot starts off large relative to player allocations, does teh first gimmel/hey dictate a likely winner early on
+## step through a game and see things are going right
+# i = 33# i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
+# wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
+# wealth_results_df.iloc[-1].drop('game_num').sum()
+# roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
+# roll_results_df['round_number'] = roll_results_df.index / num_players # every 4th pot size should be the value of the pot after a full round
+# roll_results_df = roll_results_df.set_index('round_number')
+# wealth_results_df.head()
+# roll_results_df.head(20)
+#
+# merged = wealth_results_df.merge(roll_results_df.drop('game_num', axis = 1), left_index = True, right_index = True) # modify dropping the game if you do this systematically across the board
+# merged['wealth_in_system'] = merged.drop(['game_num', 'dreidel_word'], axis = 1).sum(axis = 1)
+# merged[merged['wealth_in_system'] != starting_coins * num_players + 4]
