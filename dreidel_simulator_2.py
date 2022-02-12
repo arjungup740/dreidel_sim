@@ -123,7 +123,7 @@ def execute_multiple_games(starting_coins, ante, num_players, n_rounds, num_game
 
     return global_results
 
-def fill_short_games_to_n_rounds(tmp, n_rounds, n_players, wealth_results_or_roll_results = 'wealth'):
+def fill_short_games_to_n_rounds(tmp, n_rounds, num_players, wealth_results_or_roll_results = 'wealth'):
     """
     :param tmp: a df of an individual game
     :param n_rounds: the number of rounds in a game -- we will use this to determine how many rows the df should have
@@ -135,7 +135,7 @@ def fill_short_games_to_n_rounds(tmp, n_rounds, n_players, wealth_results_or_rol
     elif wealth_results_or_roll_results == 'roll':
         expected_len_of_tmp = (n_rounds * num_players) + 1
     if len(tmp) < expected_len_of_tmp: # if there's a data frame with less than 100 turns (initialize everyone at 0, then 100 turns of play), fill 0s and the final player's wealth to get to 100
-        to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), n_rounds + 1)], columns=tmp.columns)
+        to_concat = pd.DataFrame(np.nan, index=[x for x in range(len(tmp), expected_len_of_tmp)], columns=tmp.columns)
         final = pd.concat([tmp, to_concat]).fillna(method = 'ffill') # carry the values all the way to the end
     else:
         final = tmp
@@ -189,10 +189,11 @@ times_to_zero.mean()
 # check the length of each df, which will tell you the number of turns
 game_lengths = full_wealth_df.groupby('game_num').apply(len) # len() = 101, or n_rounds + 1 because the first rounds initializes everyone with 0
 game_lengths.quantile(np.linspace(.1, 1, 9, 0))#.describe()
+len(game_lengths[game_lengths != n_rounds + 1])
 # game_lengths.hist()
 ############################## chart distribution of wealth over time
 ## fill  in 0s for all games that end earlier (and carry the winning player's wealth forward
-full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds)\
+full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players)\
                                .drop('game_num', axis = 1)\
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
@@ -200,7 +201,8 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
 ## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things -- just check that the pot values work out and let's maybe get on with it
 max_roll_table = full_roll_results_df.groupby('game_num')['round_num'].max()
 full_roll_results_df.merge(max_roll_table, )
-full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll') # this isn't working properly
+full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll')
+
 # full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, args = (n_rounds, num_players, 'roll'))
 full_roll_results_df[full_roll_results_df['game_num'] == 33]
 
@@ -249,12 +251,10 @@ merged['wealth_in_system'] = merged.drop(['game_num', 'dreidel_word'], axis = 1)
 merged[merged['wealth_in_system'] != starting_coins * num_players + 4]
 
 ## TODO AG next steps
+# we know that there are
 # step through a few rounds for a few games and see that things are going correctly
-    # there were 60k coins to start + 4 * num games, so at the end the sum(player wealth) + amount left in pot
-        # pull out the roll results df, see that the sum of the pot values at the end of the game works out -- it doesn't but very close, 200 coins off
-            # losing 57 games where we finish before 100 turns, and so selecting for turn number 100 doesn't work and we lose those coins
-        # and for each game make sure it's always 64 coins
-# for at the end of the night/in the long run could look at 10 10 game chunks, or something, to see over time if you habitually went to the dreidel thing what would happen
+
+
 # a nice way to plot the distributions/percentiles of player wealth -- .25, .5, .75 for one player on a graph
 # what next avenues for research would be
 # document/understand logic
