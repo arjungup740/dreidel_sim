@@ -175,7 +175,6 @@ global_results[f'game_{i}_info_dict']['roll_results_df'].head()
 
 full_wealth_df = pd.concat(list_of_wealth_results)
 full_roll_results_df = pd.concat(list_of_roll_results) # getting a random
-full_roll_results_df['round_num'] = full_roll_results_df.index / 4
 wealth_cols = [x for x in full_wealth_df.columns if 'player' in x]
 
 ############################## time to 0
@@ -198,15 +197,9 @@ full_wealth_df = full_wealth_df.groupby('game_num').apply(fill_short_games_to_n_
                                .reset_index()\
                                .rename(columns = {'level_1':'round_num'})
 
-## TODO AG: have to fill in roll results here. But need to think how that affects game len calcs, other things -- just check that the pot values work out and let's maybe get on with it
-max_roll_table = full_roll_results_df.groupby('game_num')['round_num'].max()
-full_roll_results_df.merge(max_roll_table, )
 full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, n_rounds, num_players, 'roll')
-
-# full_roll_results_df = full_roll_results_df.groupby('game_num').apply(fill_short_games_to_n_rounds, args = (n_rounds, num_players, 'roll'))
-full_roll_results_df[full_roll_results_df['game_num'] == 33]
-
-# could just pull the last index on a per game basis and select those out to make sure you get the last rol results
+full_roll_results_df['round_num'] = full_roll_results_df.index / 4
+# full_roll_results_df[full_roll_results_df['game_num'] == 33]
 
 ## get the actual distros
 mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
