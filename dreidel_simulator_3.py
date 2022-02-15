@@ -24,7 +24,7 @@ def execute_one_roll(player_wealth, current_pot_size, possibilities, ante, playe
     # put said coin in the pot
     current_pot_size += ante
     # roll
-    result = random.randint(0,3)
+    result = random.randint(0, 3)
     dreidel_word = possibilities[result]
     if dreidel_word == 'nun':
         pass
@@ -147,7 +147,7 @@ starting_coins = 15
 ante = 1
 num_players = 4
 n_rounds = 100
-num_games = 1000
+num_games = 10000
 seed_wealth_of_players = num_games * (starting_coins + 1) # players each seed the pot with 1 coin to start each game
 
 ############################## play multiple games
@@ -200,17 +200,22 @@ final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
 final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
 (final_results_df[wealth_cols] > starting_coins + 1).sum() / num_games # pct of games you end up with more money than when you started -- note everyone sub 50% when house takes what's left in the pot
-(final_results_df[wealth_cols] == 0).sum() / num_games # double checking the 0 calc
+(final_results_df[wealth_cols] == 0).sum() / num_games # pct of games you end up with 0
+((final_results_df[wealth_cols] >= 1) & (final_results_df[wealth_cols] <= starting_coins + 1)).sum() / num_games # pct of games you end up with less than you started, but more than 0
 final_results_df.sum() / seed_wealth_of_players - 1 # long run return, if you played num_games over months let's say
 ## check that wealth put into system, which is players's starting coins + their seed coins each game == their final money + what's left in the pot after each game
 assert (seed_wealth_of_players * num_players) == final_results_df.sum().drop(['game_num', 'round_num']).sum() + final_roll_results_df['current_pot_size'].sum(), "total starting wealth != total ending wealth"
 assert final_roll_results_df['game_num'].nunique() == num_games #
 
+############################## What would happen at the end of hte night, where nights are 10 games
+# full_wealth_df
+
+
 ## distros
-mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
-quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
-                               .reset_index(level = 1)\
-                               .rename(columns = {'level_1':'quantile'})
+# mean_frame = full_wealth_df.groupby('round_num')[wealth_cols].mean()
+# quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25, .5, .75])\
+#                                .reset_index(level = 1)\
+#                                .rename(columns = {'level_1':'quantile'})
 
 
 ############################## plotting
@@ -233,16 +238,18 @@ quantile_frame = full_wealth_df.groupby('round_num')[wealth_cols].quantile([.25,
 
 
 ############################## QA
-
 ## step through a game and see things are going right
-# i = 33# i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
+i = 33# i = 2 is where we see not all 64 coins at the end, there's something fishy about that one
 # wealth_results_df = global_results[f'game_{i}_info_dict']['wealth_results_df']
+wealth_results_df = full_wealth_df[full_wealth_df['game_num'] == i]
 # wealth_results_df.iloc[-1].drop('game_num').sum()
 # roll_results_df = global_results[f'game_{i}_info_dict']['roll_results_df']
+roll_results_df = full_roll_results_df[full_roll_results_df['game_num'] == i]
 # roll_results_df['round_number'] = roll_results_df.index / num_players # every 4th pot size should be the value of the pot after a full round
 # roll_results_df = roll_results_df.set_index('round_number')
-# wealth_results_df.head()
-# roll_results_df.head(20)
+wealth_results_df[(wealth_results_df['round_num'] >= 57) & (wealth_results_df['round_num'] <= 65) ]#.tail(30)
+roll_results_df[ (roll_results_df['round_num'] >= 62) & (roll_results_df['round_num'] <= 65) ]
+roll_results_df.head(10)
 #
 # merged = wealth_results_df.merge(roll_results_df.drop('game_num', axis = 1), left_index = True, right_index = True) # modify dropping the game if you do this systematically across the board
 # merged['wealth_in_system'] = merged.drop(['game_num', 'dreidel_word'], axis = 1).sum(axis = 1)
