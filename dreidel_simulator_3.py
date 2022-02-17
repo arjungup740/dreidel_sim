@@ -199,7 +199,7 @@ full_roll_results_df['round_num'] = full_roll_results_df.index / 4
 final_results_df = full_wealth_df[full_wealth_df['round_num'] == n_rounds]
 final_roll_results_df = full_roll_results_df[full_roll_results_df['round_num'] == n_rounds]
 final_results_df[wealth_cols].apply(lambda x: x.quantile(np.linspace(.1, 1, 9, 0)))
-(final_results_df[wealth_cols] > starting_coins + 1).sum() / num_games # pct of games you end up with more money than when you started -- note everyone sub 50% when house takes what's left in the pot
+(final_results_df[wealth_cols] > starting_coins + 1).sum() / num_games # pct of games you end up with more money than when you started -- note everyone sub 50%git  when house takes what's left in the pot
 (final_results_df[wealth_cols] == 0).sum() / num_games # pct of games you end up with 0
 ((final_results_df[wealth_cols] >= 1) & (final_results_df[wealth_cols] <= starting_coins + 1)).sum() / num_games # pct of games you end up with less than you started, but more than 0
 final_results_df.sum() / seed_wealth_of_players - 1 # long run return, if you played num_games over months let's say
